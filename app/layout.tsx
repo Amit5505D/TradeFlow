@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
+import Header from "@/components/Header"; // ✅ ADD THIS
 import "./globals.css";
 
 const geistSans = Geist({
@@ -17,17 +19,27 @@ export const metadata: Metadata = {
   description: "A stock market app where you can track your stocks and get insights on them.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
+  const user = null; // later replace with auth()
+
   return (
     <html lang="en" className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black`}
       >
+        {/* ✅ HEADER IS HERE */}
+
+        
+
+        {/* PAGE CONTENT */}
         {children}
+
+        {/* TOASTS */}
+        <Toaster />
       </body>
     </html>
   );
