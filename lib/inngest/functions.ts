@@ -22,10 +22,10 @@ export const sendSignUpEmail = inngest.createFunction(
   async ({ event, step }) => {
     try {
       const userProfile = `
-        - Country: ${event.data?.country}
-        - Investment goals: ${event.data?.investmentGoals}
-        - Risk tolerance: ${event.data?.riskTolerance}
-        - Preferred industry: ${event.data?.preferredIndustry}
+        - Country: ${event.data?.country ?? "Not specified"}
+        - Investment goals: ${event.data?.investmentGoals ?? "Not specified"}
+        - Risk tolerance: ${event.data?.riskTolerance ?? "Not specified"}
+        - Preferred industry: ${event.data?.preferredIndustry ?? "Not specified"}
       `;
 
       const prompt = PERSONALIZED_WELCOME_EMAIL_PROMPT.replace(
@@ -47,9 +47,13 @@ export const sendSignUpEmail = inngest.createFunction(
         },
       });
 
+      const firstPart =
+        response?.candidates?.[0]?.content?.parts?.[0];
+
       const introText =
-        response?.candidates?.[0]?.content?.parts?.[0]?.text ??
-        "Thanks for joining TradeFlow. You now have the tools to track markets and make smarter moves.";
+        firstPart && "text" in firstPart
+          ? firstPart.text
+          : "Thanks for joining TradeFlow. You now have the tools to track markets and make smarter moves.";
 
       await step.run("send-welcome-email", async () => {
         return await sendWelcomeEmail({
@@ -75,7 +79,7 @@ export const sendDailyNewsSummary = inngest.createFunction(
   { id: "daily-news-summary" },
   [
     { event: "app/send.daily.news" },
-    { cron: "30 6 * * *" }, // ✅ 12 PM IST
+    { cron: "30 6 * * *" }, // 12 PM IST
   ],
   async ({ step }) => {
     try {
@@ -92,13 +96,14 @@ export const sendDailyNewsSummary = inngest.createFunction(
       }
 
       /* ---------------------------
-         STEP 2: Fetch News (Parallel)
+         STEP 2: Fetch News
       --------------------------- */
       const userNews = await step.run("fetch-user-news", async () => {
         return await Promise.all(
-          users.map(async (user: UserForNewsEmail) => {
+          users.map(async (user: any) => {
             try {
-              const symbols = await getWatchlistSymbolsByEmail(user.email);
+              const symbols =
+                await getWatchlistSymbolsByEmail(user.email);
 
               let articles = await getNews(symbols);
               articles = (articles || []).slice(0, 6);
@@ -109,7 +114,10 @@ export const sendDailyNewsSummary = inngest.createFunction(
 
               return { user, articles };
             } catch (error) {
-              console.error("Error fetching news for:", user.email);
+              console.error(
+                "Error fetching news for:",
+                user.email
+              );
               return { user, articles: [] };
             }
           })
@@ -117,7 +125,7 @@ export const sendDailyNewsSummary = inngest.createFunction(
       });
 
       /* ---------------------------
-         STEP 3: AI Summarization (Parallel)
+         STEP 3: AI Summarization
       --------------------------- */
       const summaries = await Promise.all(
         userNews.map(async ({ user, articles }) => {
@@ -148,9 +156,13 @@ export const sendDailyNewsSummary = inngest.createFunction(
               }
             );
 
+            const firstPart =
+              response?.candidates?.[0]?.content?.parts?.[0];
+
             const newsContent =
-              response?.candidates?.[0]?.content?.parts?.[0]?.text ??
-              "No major market updates today.";
+              firstPart && "text" in firstPart
+                ? firstPart.text
+                : "No major market updates today.";
 
             return { user, newsContent };
           } catch (error) {
@@ -164,7 +176,7 @@ export const sendDailyNewsSummary = inngest.createFunction(
       );
 
       /* ---------------------------
-         STEP 4: Send Emails (Parallel)
+         STEP 4: Send Emails
       --------------------------- */
       await step.run("send-news-emails", async () => {
         await Promise.all(
