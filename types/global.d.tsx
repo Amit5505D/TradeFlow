@@ -29,7 +29,7 @@ declare global {
         label: string;
         placeholder: string;
         type?: string;
-        register: UseFormRegister;
+        register: UseFormRegister<any>;
         error?: FieldError;
         validation?: RegisterOptions;
         disabled?: boolean;
@@ -55,12 +55,6 @@ declare global {
         text: string;
         linkText: string;
         href: string;
-    };
-
-    type SearchCommandProps = {
-        renderAs?: 'button' | 'text';
-        label?: string;
-        initialStocks: StockWithWatchlistStatus[];
     };
 
     type WelcomeEmailData = {
